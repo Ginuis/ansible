@@ -1,0 +1,120 @@
+---
+- name: Ensure .ssh directory exists for hadoop user
+  file:
+    path: /home/user1/.ssh
+    state: directory
+    owner: user1
+    group: user1
+    mode: '0700'
+  become: true
+
+- name: Check if SSH key exists for hadoop user
+  stat:
+    path: /home/user1/.ssh/id_rsa
+  register: key_file
+  become: true
+
+- name: Remove id_rsa for hadoop user
+  command: rm /home/user1/.ssh/id_rsa
+  become: true
+  become_user: root
+  when: key_file.stat.exists
+
+- name: Generate SSH key pair for hadoop user
+  command: ssh-keygen -t rsa -P "" -f /home/user1/.ssh/id_rsa -C "user1@{{ ansible_host }}"
+  become: true
+  become_user: user1
+
+- name: Get host names of nodes hosts
+  set_fact:
+    master_names: "{{ groups['edge'] | list }}"
+
+- name: Get host names of nodes hosts
+  set_fact:
+    slave_names: "{{ groups['nodes'] | list }}"
+
+- name: Get host names addresses of stanby hosts
+  set_fact:
+    edge_names: "{{ groups['standby'] | list }}"
+
+- name: Combine host names of all hosts
+  set_fact:
+    all_names: "{{ edge_names + nodes_names + standby_names }}"
+
+- name: Check if authorized_keys exists 
+  stat:
+    path: /home/user1/.ssh/authorized_keys
+  register: key_file
+  become: true
+      
+- name: Remove authorized_keys for hadoop user
+  command: rm /home/user1/.ssh/authorized_keys
+  become: true
+  become_user: root
+  when: key_file.stat.exists
+
+- name: Check if authorized_keys exists for hadoop user
+  stat:
+    path: /home/user1/.ssh/authorized_keys
+  register: key_file2
+  become: true
+
+- name: Generate authorized_keys for hadoop user
+  become: true
+  become_user: user1
+  file:
+    path: /home/user1/.ssh/authorized_keys
+    state: touch
+    owner: user1
+    group: user1
+    mode: '0600'
+  when: not key_file2.stat.exists
+
+- name: Check if myid exists 
+  stat:
+    path: /home/hadoop/myid
+  register: key_file
+  become: true
+
+- name: remove myid file
+  shell: rm /home/hadoop/myid
+  become: true
+  become_user: root
+  when: key_file.stat.exists
+  ignore_errors: true
+
+- name: Install sshpass on all hosts
+  ansible.builtin.package:
+    name: sshpass
+    state: present
+  become: true
+  become_user: root
+
+- name: Copy the public key to all other hosts
+  shell: sshpass -p 'user1' ssh-copy-id -i /home/user1/.ssh/id_rsa.pub -o StrictHostKeyChecking=no user1@{{ item.1 }}
+  with_nested:
+        - "{{ all_names }}"
+        - "{{ all_names }}"
+  become_user: root
+  become: true
+  ignore_errors: true
+
+- name: Check if known_hosts exists 
+  stat:
+        path: /home/user1/.ssh/known_hosts
+  register: key_file
+  become: true
+  become_user: root
+
+- name: remove known_hosts file
+  shell: rm /home/user1/.ssh/known_hosts
+  become: true
+  become_user: root
+  ignore_errors: true
+  when: key_file.stat.exists
+
+- name: Populate known_hosts file
+  shell: ssh-keyscan -H {{ item }} >> /home/user1/.ssh/known_hosts
+  become: true
+  become_user: hadoop
+  with_items: "{{ all_names }}"

@@ -1,0 +1,44 @@
+---
+- name: Create directory for MapR GPG key
+  file:
+    path: /home/user1/maprgpg.key
+    state: directory
+    mode: 0700  
+  tags: create-directory
+
+- name: Write MapR GPG key content
+  lineinfile:
+    path: /home/user1/maprgpg/maprgpg.key
+    create: yes
+    line: "{{ key_content }}"
+  vars:
+    key_content: |-  
+      -----BEGIN PGP PUBLIC KEY BLOCK-----
+      Version: GnuPG v1.4.11 (GNU/Linux)
+      
+      mQENBFOsW+4BCADogwlHDS1cH2Io9qumv7nBaE4zMszrBwA3KKyPFZVG8kZ+1iCi
+      ZyqmtvPlENFqzCWO8qrMuCUvC7Um74rILJbstyGQNkj8U/HjJDE3qP8dFTTXfQHN
+      x6Fh2U37K3+7uPR2rOmR7ZQxmMXK+B4KLUFiC6tLPqSx23sn40aOWmgJAUPFEBep
+      DR2Ku+fTSJHqj8zjQPjfayXxigKUORsc84ZtoBGXXqumr2Q0nR0QWyxRWo5EOXR5
+      hjeTIImaD/oS/P0+Rzj2oCTIyjg9hhF+HzPyJy1A8BckfU15JFSt6vqJ0X2iQf+Y
+      rGfts9DeoICiDkAHedygKLaTaVWzCWpmqcQNABEBAAG0V01hcFIgVGVjaG5vbG9n
+      aWVzLCBJbmMuIExpbnV4IFBhY2thZ2UgU2lnbmluZyBLZXkgKDIwMTQgLSBubyBz
+      dWJremcpIDxzdXBwb3J0QG1hcHIuY29tPokBOAQTAQIAIgUCU6xb7gIbAwYLCQgH
+      AwIGFQgCCQoLBBYCAwECHgECF4AACgkQv922CWaz8NbHdAgAnlZX8x+gZyasTceY
+      2GidSalEKfSiSLiCu/TXqL/VpZzBu06rxJsKAwRbt02W87TslDBXbJ62zJ2K50bx
+      tA0F8fZEwUAV5MtuHv/sq9oeP2ypQpctbGGeL5nvGmozzh0dxnrOcKms0TisKIsq
+      koBz1sgRkMWI0YTxRrSafpn6Ef5uVvIwCCR1dAz0kSkjoWLPYQ9z9VBfzUvgikML
+      qhNVII9se1YFWEW0R/iDdXv/ypJkKl9mJfX6nSwfLkdXoBuBivi9YFdwVt6xMSSE
+      x8IsKhj+C3eu0KKrZmOHr+cIuoOjMQ+VAXSeTrEMmg4WgakdzkRewTu6zuTkKYd0
+      X3WDWg==
+      =96ys
+      -----END PGP PUBLIC KEY BLOCK-----
+  become: true  # Requires root privileges to write the file
+  tags: write-key
+
+- name: Import MapR GPG key
+  rpm_key:
+    state: present
+    src: /home/user1/maprgpg/maprgpg.key
+  become: true  # Requires root privileges
+  tags: import-key

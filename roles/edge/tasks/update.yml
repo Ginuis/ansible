@@ -1,0 +1,29 @@
+---
+- name: Update yum repositories
+  become: true  # Requires root privileges
+  yum:
+    name: "*"
+    state: latest
+  register: yum_update  # Register the result of the task
+
+- name: Check if yum update was successful
+  debug:
+    msg: "Yum update completed successfully."
+  when: yum_update.rc == 0  # Check the return code (0 for success)
+
+- name: Search for mapr-fileserver package
+  become: true  # Requires root privileges
+  yum:
+    name: mapr-fileserver
+    state: search
+  register: mapr_search  # Register the search result
+
+- name: Check if mapr-fileserver package is found
+  debug:
+    msg: "mapr-fileserver package found in repositories."
+  when: mapr_search.rc == 0 and mapr_search.matched.stdout != ""  #  # Check the return code (0 for package found) and Check if any packages matched
+
+- name: No mapr-fileserver package found
+  debug:
+    msg: "mapr-fileserver package not found in repositories."
+  when: not mapr_search.rc == 0 or mapr_search.matched.stdout == ""

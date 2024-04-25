@@ -1,0 +1,86 @@
+---
+- name: Install mapr-fileserver package
+  become: true  # Requires root privileges
+  yum:
+    name : "{{ packages }}"
+  vars:
+    packages:
+      - mapr-fileserver
+      - mapr-nodemanager
+      - mapr-cldb
+      - mapr-gateway
+      - mapr-ressourcemanager
+      - mapr-historyserver
+  tags: packages
+
+- name: Check role
+  command: ls -l /opt/mapr/roles/
+
+- name: open tcp port
+  become: true
+  command: firewall-cmd --zone=public --add-port=8443/tcp --permanent
+
+- name: Reload firewall
+  become: true
+  command: firewall-cmd --reload
+
+- name: Create MapR diskpart file
+  become: true  # Requires root privileges
+  template:
+    src: |  # Define content inline
+      /dev/sdb
+      /dev/sdc
+    dest: /opt/mapr/conf/diskpart
+    owner: mapr
+    group: mapr
+    mode: 0600
+
+- name: Ensure /dev/sdb is present in diskpart file (redundant)
+  lineinfile:
+    path: /opt/mapr/conf/diskpart
+    create: yes
+    line: /dev/sdb
+  when: not lineinfile.stdout.find("/dev/sdb") != -1  # Check if /dev/sdb exists
+
+- name: Ensure /dev/sdc is present in diskpart file (redundant)
+  lineinfile:
+    path: /opt/mapr/conf/diskpart
+    create: yes
+    line: /dev/sdc
+  when: not lineinfile.stdout.find("/dev/sdc") != -1  # Check if /dev/sdc exists
+
+
+- name: Mapr configuration
+  become: true
+  command: sudo /opt/mapr/server/configure.sh -C client.project.fr -Z clien.project.fr -N monitoring.cluster.com --create-user
+
+- name: Reload daemon
+  become: true
+  command: systemctl daemon-reload
+
+- name: Start warden
+  service:
+    name: mapr-warden
+    state: started
+
+- name: Create temporary disk list file
+  become: true  # Requires root privileges
+  copy:
+    content: |  # Define disk list directly
+      /dev/sdb
+      /dev/sdc
+    dest: /tmp/disks
+    mode: 0600  # Restrict access
+
+- name: Add disks to MapR cluster
+  become: true
+  command: /opt/mapr/server/disksetup -F /tmp/disks
+  register: disk_add  # Register the command output
+
+- name: Check if disks were added successfully
+  debug:
+    msg: "Disks added successfully: {{ disk_add.stdout }}"
+  when: disk_add.rc == 0  # Check the return code (0 for success)
+
+- name: check cluster ID
+  command: maprcli license showId

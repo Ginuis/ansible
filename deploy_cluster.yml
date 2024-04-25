@@ -1,0 +1,33 @@
+---
+- name: Installation des ressources commune
+  hosts: all
+  gather_facts: true
+  become_user: true
+  ansible_python_interpreter: /usr/bin/python3
+  roles:
+    - common
+
+- name: Paramétrage du noeud client
+  gather_facts: true
+  become_user: true
+  ansible_python_interpreter: /usr/bin/python3
+  roles:
+    - edge
+
+#- hosts: master_node
+#  become: true
+#  tasks:
+#    - name: Install additional software for master node (if needed)
+      # Add specific tasks for master node configuration here
+
+#- hosts: client
+#  become: true
+#  tasks:
+#    - name: Install additional software for client node (if needed)
+      # Add specific tasks for client node configuration here
+
+#- hosts: standby
+#  become: true
+#  tasks:
+#    - name: Install additional software for standby node (if needed)
+      # Add specific tasks for standby node configuration here

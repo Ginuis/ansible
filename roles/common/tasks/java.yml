@@ -1,0 +1,19 @@
+---
+- name: Install Java
+  yum:
+        name: openjdk-8-jdk
+        state: present
+  become: true
+  become_user: root
+  tags: install-java
+
+- name: Change ownership of opt directory
+  file:
+        path: /opt
+        owner: user1
+        group: user1
+        mode: '0755'
+        recurse: yes
+  become_user: root
+  become: true
+  tags: change-the-ownership
