@@ -20,9 +20,37 @@
   become: true
   command: firewall-cmd --zone=public --add-port=8443/tcp --permanent
 
+- name: open tcp port(5181/tcp)
+  become: true
+  command: firewall-cmd --zone=public --add-port=5181/tcp --permanent
+
+- name: open tcp port(2888/tcp)
+  become: true
+  command: firewall-cmd --zone=public --add-port=2888/tcp --permanent
+
+- name: open tcp port(3888/tcp)
+  become: true
+  command: firewall-cmd --zone=public --add-port=3888/tcp --permanent
+
+- name: open tcp port(7222/tcp)
+  become: true
+  command: firewall-cmd --zone=public --add-port=7222/tcp --permanent
+
+- name: open tcp port(7221/tcp)
+  become: true
+  command: firewall-cmd --zone=public --add-port=7221/tcp --permanent
+
+- name: port config
+  become: true
+  command: iptables -A INPUT -p tcp --match multiport --dports 2888 ,3888 ,5181, 7222, 7221, 8443 -j ACCEPT
+
 - name: Reload firewall
   become: true
   command: firewall-cmd --reload
+
+- name: save iptables
+  become: true
+  command: iptables-save
 
 - name: Create MapR diskpart file
   become: true  # Requires root privileges
